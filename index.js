@@ -8,8 +8,12 @@ const bdd = require("./bdd.json");
 
 
 bot.on("ready", async () => {
-    bot.user.setStatus("online");
-    bot.user.setActivity("regrade une vidéo")
+    
+    let statuts = bdd.stats
+    setInterval(function() {
+        let stats = statuts[Math.floor(Math.random()*statuts.length)];
+        bot.user.setActivity(stats, {type: "STREAMING"})
+    }, 2000)
     console.log("le bot es opérationnel") 
 })
 
@@ -104,5 +108,45 @@ function Savebdd() {
     });
 }
 
+
+
+
+bot.commands = new Discord.Collection();
+// bot.aliases = new Discord.Collection();
+fs.readdir("./commands/", (err, files) => {
+
+    if (err) console.log(err);
+
+    let jsfile = files.filter(f => f.split(".").pop() === "js");
+
+    if (jsfile.length <= 0) {
+        return console.log("Impossible de trouver des commandes");
+    }
+
+    jsfile.forEach((f, i) => {
+        let pull = require(`./commands/${f}`);
+
+        bot.commands.set(pull.config.name, pull);
+
+        // pull.config.aliases.forEach(alias => {
+
+        //     bot.aliases.set(alias, pull.config.name)
+
+        // });
+    });
+});
+bot.on("message", async message => {
+
+    if (message.author.bot || message.channel.type === "dm") return;
+    
+    let prefix = config.prefix;
+    let messagearray = message.content.split(" ")
+    let cmd = messagearray[0];
+    let args = message.content.trim().split(/ +/g);
+
+    if (!message.content.startsWith(prefix)) return;
+    let commandfile = bot.commands.get(cmd.slice(prefix.length))
+    if (commandfile) commandfile.run(bot, message, args, Savebdd);
+});
 
 bot.login(token);
